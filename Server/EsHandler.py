@@ -23,7 +23,7 @@ class EsHandler:
                          hit["_source"].get("mac-address"),
                          hit["_source"].get("ip"),
                          hit["_source"].get("os"),
-                         hit["_source"].get("node-name"),
+                         hit["_source"].get("system-name"),
                          hit["_source"].get("release"),
                          hit["_source"].get("version"),
                          hit["_source"].get("machine"),
@@ -39,7 +39,7 @@ class EsHandler:
 
     #saves first portion of client file in index
     def store_client_information(self, client_info):
-            client_info = eval(client_info.replace("'", "\"")) # Convert the string to a Python dictionary
+           
             doc = json.dumps(client_info, indent=4, ensure_ascii=False)
 
             try:
@@ -79,7 +79,8 @@ class EsHandler:
             print("[+]Unable delete documents")
 
 
-    #retrieves the specified feilds in a document
+
+    #displays specified feilds in a document
     def show_fields(self, client_id):
         try:
             resp = self.es.get(index=self.db_name, id=client_id)
@@ -97,7 +98,7 @@ class EsHandler:
 
 
 
-    #retrieves the specified feilds in a document
+    #retrieves the specified feild in a document
     def get_field(self, client_id, feild_parameter):
         try:
             resp = self.es.get(index=self.db_name, id=client_id)
@@ -109,5 +110,60 @@ class EsHandler:
                 print(json.dumps(resp, indent=4))
         except:
             print("[-]Field does not exist")
+
+
+
+
+    #checks if connected client is present in elasticsearch index
+    def is_client_present(self, mac_address):
+        try:
+            resp = self.es.search(index=self.db_name,  query={"match": {"mac-address": mac_address}})
+            if (resp['hits']['total']['value'] > 0):
+                return True
+            else:
+                return False
+        except Exception as e:
+            print("[-]Document does not exist!!! /n")
+
+
+
+    #updates existing client document using client mac address as identifier
+    def update_document(self, mac_address, client_data):
+        client_id = str()
+
+        try:
+            resp = self.es.search(index=self.db_name,  query={"match": {"mac-address": mac_address}})
+            for hit in resp['hits']['hits']:
+                client_id = (hit["_id"])
+
+            resp = self.es.update(index=self.db_name, id=client_id, doc=client_data)
+            return client_id
+
+        except Exception as e:
+            print("[-]Document does not exist!!! /n")
+
+
+
+
+    def is_client_connected(self, client_ip):
+        try:
+            resp = self.es.search(index=self.db_name, query={"match": {"ip": client_ip}})
+            self.tabulate_data(resp)
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+        
+
+    def get_client_ip(self, client_id):
+        try:
+            resp = self.es.get(index=self.db_name, id=client_id)
+            return resp["_source"]["ip"]
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+
 
 

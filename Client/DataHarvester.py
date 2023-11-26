@@ -3,7 +3,7 @@ from getmac import get_mac_address as gma
 import getpass
 from datetime import timedelta
 import datetime
-
+import socket
 
 
 class DataHarvester:
@@ -14,6 +14,7 @@ class DataHarvester:
 
         system_info = {
                          "mac-address": gma(),
+                         "ip": "",
                          "os": platform.uname().system,
                          "system-name": platform.uname().node,
                          "release": platform.uname().release,
@@ -25,9 +26,6 @@ class DataHarvester:
                     }
 
         return system_info
-
-
-
 
 
 

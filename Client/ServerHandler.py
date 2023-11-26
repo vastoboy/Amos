@@ -4,12 +4,13 @@ import time
 import os
 
 
+
 class ServerHandler:
 
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
- 
+
 
     def convert_text(self, text):
         RESET = "\033[0m"
