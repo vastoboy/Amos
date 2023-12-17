@@ -4,7 +4,7 @@ import threading
 from EsHandler import EsHandler
 import time
 import requests
-
+import json
 
 
 class MyHandler(BaseHTTPRequestHandler):
@@ -14,6 +14,7 @@ class MyHandler(BaseHTTPRequestHandler):
     selected_client_ip = None  # Variable to store the selected client IP after using 'select' command
     input_ready = threading.Condition()  # Condition object for synchronizing input
     es_handler = None
+    check_call_response = False
 
 
 
@@ -31,6 +32,8 @@ class MyHandler(BaseHTTPRequestHandler):
         pass
 
 
+    ##this is where the problem is
+    #you need to rewrite the get function to hold result sent to it in a variable
 
     #sends command to server
     def send_shell_command_to_client(self):
@@ -39,10 +42,8 @@ class MyHandler(BaseHTTPRequestHandler):
             MyHandler.input_ready.wait()
 
             self.wfile.write(MyHandler.shell_command.encode())
-            print("Result:", MyHandler.shell_command)
+
             
-
-
 
     def do_GET(self):
         if MyHandler.selected_client_ip is None:
@@ -63,32 +64,71 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 
+    def store_sys_info(self, client_data, client_ip):
+
+        sys_info = client_data["rfile"][0]
+        sys_info = eval(sys_info.replace("'", "\"")) # Convert the string to a Python dictionary
+        sys_info.update({"ip": str(client_ip)}) #update ip fields with client IP
+        mac_address = sys_info.get('mac-address')
+        
+        if MyHandler.es_handler.is_client_present(mac_address):
+            MyHandler.es_handler.update_document(mac_address, sys_info)
+        else:
+            MyHandler.es_handler.store_client_information(sys_info)
+
+
+
+    def get_action_value(self, client_data):
+        try:
+            data_dict = json.loads(client_data['rfile'][0])
+            action_value = data_dict.get("action")
+            return action_value
+        except Exception as e:
+            #print(f"Error: {e}")
+            return None
+
+
+
     def do_POST(self):
         client_ip = self.client_address[0]
         length = int(self.headers['Content-Length'])
         self.send_response(200)
         self.end_headers()
 
-        data = parse_qs(self.rfile.read(length).decode())
+        # response data
+        client_post = parse_qs(self.rfile.read(length).decode())
+        # checks if the client is sending an action
+        action = self.get_action_value(client_post)
 
-        if "rfile" in data:
+        if action:
+            print(f"Received action: {action}")
+            # Perform actions based on the received action
+            if action == "save_data":
+                client_dict = json.loads(client_post['rfile'][0])
+                data_value = client_dict.get("data", {})
+                print("Data Value:" + str(data_value))
+                data_value['ip'] = client_ip
+                MyHandler.es_handler.store_client_information(data_value)
 
-            if MyHandler.shell_command == "sys_info":
-                sys_info = data["rfile"][0]
-                sys_info = eval(sys_info.replace("'", "\"")) # Convert the string to a Python dictionary
-                sys_info.update({"ip": str(client_ip)}) #update ip fields with client IP
-                mac_address = sys_info.get('mac-address')
-                
-                if MyHandler.es_handler.is_client_present(mac_address):
-                    MyHandler.es_handler.update_document(mac_address, sys_info)
-                else:
-                    MyHandler.es_handler.store_client_information(sys_info)
             else:
-                print(data["rfile"][0])
+                print(f"Unknown action: {action}")
+
+        #why is rfile used here?
+        else:
+            if "rfile" in client_post:
+                # sys_info response
+                if hasattr(MyHandler, 'shell_command') and MyHandler.shell_command == "sys_info":
+                    self.store_sys_info(client_post, client_ip)
+
+                # check call response
+                elif hasattr(MyHandler, 'shell_command') and MyHandler.shell_command == "connected":
+                    if str(client_post["rfile"][0]) == "active":
+                        print("Active")
+                else:
+                    print(str(client_post["rfile"][0]))
 
 
-
-
+ 
 
     def get_client_id(self, client_ip):
         # Get the client ID based on the client's IP address
@@ -126,6 +166,7 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 
+    #fix this code not to lag 
     def send_check_call_command(self, client_ip):
 
         # Set a timeout of 5 seconds
@@ -135,20 +176,13 @@ class MyHandler(BaseHTTPRequestHandler):
         response_received = False
 
         while not response_received and time.time() - start_time < timeout:
-           
+        
             # Send the "check call" command to the client
             with MyHandler.input_ready:
-                MyHandler.shell_command = "check call"
+                MyHandler.shell_command = "connected"
                 MyHandler.input_ready.notify()
                 response_received = True
-
-        if response_received:
-            # Print the result received from the client
-            print(f"Client IP: {client_ip} - Check Call Result: {response_received}")
-            response_received = False
-        else:
-            # Handle the case when the timeout is reached
-            print(f"Client IP: {client_ip} - Check Call timed out after {timeout} seconds")
+               
 
 
 

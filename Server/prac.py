@@ -1,13 +1,5 @@
-import platform
-from getmac import get_mac_address as gma
-import getpass
-from datetime import timedelta
-import datetime
+my_list = [1, 2, 3, 4, 5]
 
-
-
-print(platform.uname().node)
-
-
-
-                  
+# Print the list in reverse order
+print("Original List:", my_list)
+print("Reversed List:", my_list[::-1])

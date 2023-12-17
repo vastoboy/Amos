@@ -16,8 +16,8 @@ class EsHandler:
 
     #tabulate es date using prettytable
     def tabulate_data(self, resp):
-        for hit in resp['hits']['hits']:
-            self.pt.field_names = ["Client ID", "Mac Address", "IP Address", "System", "Node Name", "Release", "Version", "Machine", "Date-Joined", "Time-Joined", "User"]
+        for hit in resp:
+            self.pt.field_names = ["Client ID", "Mac Address", "IP", "System", "Node Name", "Release", "Version", "Machine", "Date-Joined", "Time-Joined", "User"]
             self.pt.add_row([
                          hit["_id"],
                          hit["_source"].get("mac-address"),
@@ -54,7 +54,29 @@ class EsHandler:
     def retrieve_client_information(self):
         try:
             response = self.es.search(index=self.db_name, size=100, query={"match_all": {}})
-            self.tabulate_data(response)
+            self.tabulate_data(response['hits']['hits'])
+        except Exception as e:
+                print(e)
+
+
+
+    #retrieve client information documents from elastic search
+    def retrieve_connected_clients(self, client_ip):
+        
+        try:
+            query = {
+                "query": {
+                    "match": {
+                        "ip": client_ip
+                    }
+                }
+            }
+
+            response = self.es.search(index=self.db_name, size=100, body=query)
+            hits = response['hits']['hits']
+            client_info = [{'_id': hit['_id'], '_source': hit['_source']} for hit in hits]
+            return client_info[0]
+
         except Exception as e:
                 print(e)
 
@@ -165,5 +187,11 @@ class EsHandler:
 
 
 
-
-
+    #retrieves document from index
+    def retrieve_client_document(self, client_id):
+        try:
+            resp = self.es.get(index=self.db_name, id=client_id)
+            print(json.dumps(resp['_source'], indent=4))
+            return resp
+        except:
+            print("[-]Document does not exist!!! /n")

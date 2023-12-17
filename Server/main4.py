@@ -7,6 +7,7 @@ IP = '192.168.1.192'
 PORT = 8080
 
 
+
 class MyHandler(BaseHTTPRequestHandler):
     connected_clients = {}  # Use a class variable to store connected clients with their unique IDs
     selected_client_ip = None  # Variable to store the selected client IP after using 'select' command

