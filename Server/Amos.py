@@ -71,14 +71,24 @@ class Amos:
             cmd = input(self.convert_text("Amos: "))
 
             if cmd == 'connected':
+                #sends a check call to client
                 cmd = cmd.strip().lower()
                 response = []
                 for client_ip, client_id in http_server.RequestHandlerClass.connected_clients.items():
                     print(client_id, client_ip)
-                    http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
-                    response.append(self.esHandler.retrieve_connected_clients(client_ip))
-                
+                    check_call_response = http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
+                   
+                    print("Check Call Response:" + str(check_call_response))
+
+                    if check_call_response:
+                        response.append(self.esHandler.retrieve_connected_clients(client_ip))
+
+                    else:
+                        print("no response")
+
+
                 self.esHandler.tabulate_data(response)
+                response.clear()
                     
                     
             elif cmd.strip() == "":

