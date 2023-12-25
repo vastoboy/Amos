@@ -4,10 +4,9 @@ import getpass
 from datetime import timedelta
 import datetime
 import socket
-
+import requests
 
 class DataHarvester:
-
 
     # returns client system information to the server
     def get_platform_info(self):
@@ -26,16 +25,5 @@ class DataHarvester:
                     }
 
         return system_info
-
-
-
-
-
-
-
-
-
-
-
 
 
