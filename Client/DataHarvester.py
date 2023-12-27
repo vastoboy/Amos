@@ -6,6 +6,7 @@ import datetime
 import socket
 import requests
 
+
 class DataHarvester:
 
     # returns client system information to the server
