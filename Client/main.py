@@ -76,5 +76,5 @@ class AmosClient:
 
 
 
-client = AmosClient("192.168.1.192", 8080)
+client = AmosClient("", 8080)
 client.start()
