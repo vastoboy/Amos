@@ -177,7 +177,7 @@ class Amos:
 
 
 if __name__ == '__main__':
-    amos_server = Amos('192.168.1.192', 8080, "amos_index", "http://localhost:9200")
+    amos_server = Amos('', 8080, "amos_index", "http://localhost:9200")
     amos_server.show_commands()
     amos_server.start()
    
